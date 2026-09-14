@@ -1,190 +1,166 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+import http.server
+import socketserver
+import threading
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 
-TOKEN = '7993052115:AAGM58l-JJfaAU7nD8ho80_PKuU8haLGFIA'
-ADMIN_ID = 8995171689 # ⚠️ এখানে আপনার Telegram Numeric ID দিন (@userinfobot থেকে পাবেন)
-PAYMENT_NUMBER = "01998307838"  # ⚠️ আপনার বিকাশ/নগদ নম্বর
+# --- Render Port Binding (Dummy HTTP Server) ---
+def run_dummy_server():
+    PORT = 10000
+    Handler = http.server.SimpleHTTPRequestHandler
+    try:
+        with socketserver.TCPServer(("", PORT), Handler) as httpd:
+            httpd.serve_forever()
+    except Exception:
+        pass
 
-WAITING_TRX = 1
+threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# ১. মেনু সার্ভিসেস
+# --- Configuration & Links ---
+BOT_TOKEN = "7993052115:AAGM58l-JJfaAU7nD8ho80_PKuU8haLGFIA"
+SUPPORT_LINK = "https://t.me/riad3657"
+GROUP_LINK = "https://t.me/OldXShopBot"
+
+# --- UI Keyboards ---
+def get_main_menu():
+    keyboard = [
+        [InlineKeyboardButton("🛍 Shop Now", callback_data="shop_now")],
+        [InlineKeyboardButton("👤 Profile", callback_data="profile"), InlineKeyboardButton("🎯 FF Likes", callback_data="ff_likes")],
+        [InlineKeyboardButton("💳 Add Balance", callback_data="add_balance"), InlineKeyboardButton("🎁 Referral", callback_data="referral")],
+        [InlineKeyboardButton("🎰 Lucky Spin", callback_data="lucky_spin"), InlineKeyboardButton("📁 Files", callback_data="files")],
+        [InlineKeyboardButton("📺 Tutorials", callback_data="tutorials"), InlineKeyboardButton("☎️ Support", callback_data="support")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+# --- Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "◈────────────◈\n"
-        "🎮 *MURUBBI X SHOP* 🎮\n"
-        "◈────────────◈\n\n"
-        "Hey, glad to have you here.\n\n"
-        "*যা যা পাচ্ছেন এখানে:*\n"
-        "▸ 🔑 Premium Game Keys\n"
-        "▸ ⚡ Instant 24/7 Delivery\n"
-        "▸ 🔒 100% Secure Payment\n"
-        "▸ 💸 Best Price Guarantee\n"
-        "▸ 🎁 Referral Rewards\n"
-        "▸ 🏆 Real Human Support\n\n"
-        "◈────────────◈\n"
-        "👇 *নিচ থেকে শুরু করুন*"
+    contact_button = KeyboardButton(text="📱 Share Phone Number", request_contact=True)
+    reply_markup = ReplyKeyboardMarkup([[contact_button]], resize_keyboard=True, one_time_keyboard=True)
+    
+    msg = (
+        "📱 **Phone Number Verify করুন**\n\n"
+        "Bot ব্যবহার করার আগে আপনার phone number verify করা প্রয়োজন।\n\n"
+        "নিচের বাটনে ক্লিক করে আপনার number শেয়ার করুন 👇"
     )
-    
-    keyboard = [
-        [InlineKeyboardButton("🛍️ Shop Now", callback_data='shop_now')],
-        [InlineKeyboardButton("👤 Profile", callback_data='profile'), InlineKeyboardButton("🎯 FF Likes", callback_data='ff_likes')],
-        [InlineKeyboardButton("💵 Add Balance", callback_data='add_balance'), InlineKeyboardButton("🎁 Referral", callback_data='referral')],
-        [InlineKeyboardButton("🎰 Lucky Spin", callback_data='spin'), InlineKeyboardButton("📁 Files", callback_data='files')],
-        [InlineKeyboardButton("📺 Tutorials", callback_data='tutorials'), InlineKeyboardButton("🎫 Support", callback_data='support')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    if update.message:
-        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=reply_markup)
-    else:
-        await update.callback_query.message.edit_text(text, parse_mode='Markdown', reply_markup=reply_markup)
-    return ConversationHandler.END
+    await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=reply_markup)
 
-# ২. প্রোডাক্ট ক্যাটালগ (Shop Now)
-async def shop_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    welcome_text = (
+        "✅ **Phone number verify হয়ে গেছে! ধন্যবাদ।**\n\n"
+        "═════════════════════\n"
+        "🎮 **OLD X SHOP** 🎮\n"
+        "═════════════════════\n\n"
+        f"Hey {user.first_name} 👋, glad to have you here.\n\n"
+        "**যা যা পাচ্ছেন এখানে:**\n"
+        " 🔑 Premium Game Keys\n"
+        " ⚡️ Instant 24/7 Delivery\n"
+        " 🔒 100% Secure Payment\n"
+        " 💸 Best Price Guarantee\n"
+        " 🎁 Referral Rewards\n"
+        " 🏆 Real Human Support\n\n"
+        "═════════════════════\n"
+        "👇 **নিচ থেকে শুরু করুন**"
+    )
+    await update.message.reply_text(welcome_text, parse_mode="Markdown", reply_markup=get_main_menu())
+
+async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    text = (
-        "🎮 *CHOOSE YOUR GAME*\n"
-        "◈────────────◈\n\n"
-        "⭐ *Available Products*\n\n"
-        "⚔️ Premium Keys\n"
-        "⚡ Instant Delivery\n"
-        "🔒 Secure Payment\n"
-        "🏆 24/7 Support\n\n"
-        "📦 *Select a product below:*"
-    )
-    keyboard = [
-        [InlineKeyboardButton("🛒 FF GUILD GLORY", callback_data='prod_drip')],
-        [InlineKeyboardButton("🛒 DRIP WIRE ANDROID", callback_data='prod_drip')],
-        [InlineKeyboardButton("🛒 BALA MOD", callback_data='prod_drip')],
-        [InlineKeyboardButton("🛒 DRIP CLIENT PROXY", callback_data='prod_drip')],
-        [InlineKeyboardButton("🛒 XREG ANDROID+IOS", callback_data='prod_drip')],
-        [InlineKeyboardButton("🛒 BRMOD PC", callback_data='prod_drip')],
-        [InlineKeyboardButton("⬅️ Back to Menu", callback_data='main_menu')]
-    ]
-    await query.message.edit_text(text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
-    return ConversationHandler.END
-
-# ৩. প্ল্যান সিলেক্ট (DRIP WIRE ANDROID)
-async def product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    file_link = "[https://t.me/your_file_link](https://t.me/your_file_link)"
-    text = (
-        "🛒 *DRIP WIRE ANDROID*\n\n"
-        "📊 *STOCK & PRICING:*\n"
-        "◈────────────◈\n\n"
-        "*6 Hours*\n📦 Stock: ✅ In Stock\n💰 Price: ৳50\n\n"
-        "*12 Hours*\n📦 Stock: ✅ In Stock\n💰 Price: ৳90\n\n"
-        "*1 Day*\n📦 Stock: ✅ In Stock\n💰 Price: ৳150\n\n"
-        "*7 Days*\n📦 Stock: ✅ In Stock\n💰 Price: ৳500\n\n"
-        "🎯 *SELECT YOUR PLAN:*"
-    )
-    keyboard = [
-        [InlineKeyboardButton("🛒 Buy 6 Hours - ৳50", callback_data='buy_6h')],
-        [InlineKeyboardButton("🛒 Buy 12 Hours - ৳90", callback_data='buy_12h')],
-        [InlineKeyboardButton("🛒 Buy 1 Day - ৳150", callback_data='buy_1d')],
-        [InlineKeyboardButton("🛒 Buy 7 Days - ৳500", callback_data='buy_7d')],
-        [InlineKeyboardButton("🎥 Demo", url='https://murubbixtopup.com/')],
-        [InlineKeyboardButton("⬅️ Back to Shop", callback_data='shop_now')]
-    ]
-    await query.message.edit_text(text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
-    return ConversationHandler.END
-
-# ৪. পেমেন্ট নির্দেশিকা ও TrxID গ্রহণ
-async def process_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    plans = {
-        'buy_6h': ('6 Hours', '৳50'),
-        'buy_12h': ('12 Hours', '৳90'),
-        'buy_1d': ('1 Day', '৳150'),
-        'buy_7d': ('7 Days', '৳500')
-    }
-    plan_name, price = plans.get(query.data, ('Selected Plan', '৳0'))
-    context.user_data['selected_plan'] = f"{plan_name} ({price})"
-    
-    text = (
-        f"💳 *পেমেন্ট নির্দেশিকা ({plan_name})*\n\n"
-        f"আপনার সিলেক্ট করা মূল্য: *{price}*\n\n"
-        f"১. বিকাশ / নগদ (Send Money/Cashout): `{PAYMENT_NUMBER}`\n"
-        f"২. টাকা পাঠিয়ে আপনার **TrxID** বা **প্রেরকের নম্বরটি** নিচে লিখে মেসেজ দিন।"
-    )
-    await query.message.reply_text(text, parse_mode='Markdown')
-    return WAITING_TRX
-
-# ৫. কাস্টমারের দেওয়া TrxID এডমিনের কাছে পাঠানো
-async def receive_trx(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.message.from_user
-    trx_text = update.message.text
-    plan = context.user_data.get('selected_plan', 'Unknown Plan')
-    
-    # এডমিন মেসেজ
-    admin_msg = (
-        f"🚨 *নতুন অর্ডার এসেছে!*\n\n"
-        f"👤 কাস্টমার: {user.first_name} (@{user.username})\n"
-        f"🆔 User ID: `{user.id}`\n"
-        f"📦 প্ল্যান: {plan}\n"
-        f"🧾 TrxID / নম্বর: `{trx_text}`"
-    )
-    
-    keyboard = [
-        [
-            InlineKeyboardButton("✅ Approve Order", callback_data=f"app_{user.id}"),
-            InlineKeyboardButton("❌ Reject Order", callback_data=f"rej_{user.id}")
-        ]
-    ]
-    
-    await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
-    await update.message.reply_text("✅ আপনার পেমেন্ট তথ্য জমা নেওয়া হয়েছে! এডমিন ভেরিফাই করে ফাইল পাঠাবে।")
-    return ConversationHandler.END
-
-# ৬. এডমিনের একশন (Approve/Reject)
-async def admin_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
+    user = query.from_user
     data = query.data
-    user_id = int(data.split('_')[1])
-    
-    if data.startswith("app_"):
-        file_link = "https://t.me/your_file_link"  # ⚠️ এখানে কাস্টমারকে দেওয়ার জন্য প্যানেল ফাইল বা কি (Key) লিঙ্ক দিন
-        await context.bot.send_message(
-            chat_id=user_id,
-            text=f"🎉 *আপনার পেমেন্ট ভেরিফাই হয়েছে!*\n\nএখানে আপনার প্যানেল ফাইল/কী (Key):\n{file_link}",
-            parse_mode='Markdown'
+
+    if data == "shop_now" or data == "back_to_shop":
+        text = (
+            "🛒 **BRMOD PC**\n\n"
+            "📊 **STOCK & PRICING:**\n"
+            "═════════════════════\n\n"
+            "**1 Day**\n"
+            "📦 Stock: ✅ In Stock\n"
+            "💰 Price: ৳100\n\n"
+            "**10 Days**\n"
+            "📦 Stock: ✅ In Stock\n"
+            "💰 Price: ৳450\n\n"
+            "**30 Days**\n"
+            "📦 Stock: ✅ In Stock\n"
+            "💰 Price: ৳750\n\n"
+            "🎯 **SELECT YOUR PLAN:**"
         )
-        await query.message.edit_text(query.message.text + "\n\n✅ *Status: APPROVED*")
-    else:
-        await context.bot.send_message(
-            chat_id=user_id,
-            text="❌ আপনার পেমেন্ট ভেরিফিকেশন ব্যর্থ হয়েছে। সঠিক TrxID দিয়ে আবার চেষ্টা করুন বা সাপোর্ট হেল্প নিন।"
+        keyboard = [
+            [InlineKeyboardButton("🛒 Buy 1 Day - ৳100", callback_data="buy_1")],
+            [InlineKeyboardButton("🛒 Buy 10 Days - ৳450", callback_data="buy_10")],
+            [InlineKeyboardButton("🛒 Buy 30 Days - ৳750", callback_data="buy_30")],
+            [InlineKeyboardButton("⬅️ Back to Menu", callback_data="back_to_main")]
+        ]
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif data == "profile":
+        text = (
+            "👤 **YOUR PROFILE**\n"
+            "═════════════════════\n\n"
+            "🆔 **Account Information**\n\n"
+            f"🆔 User ID: `{user.id}`\n"
+            f"👤 Name: {user.first_name}\n\n"
+            "💰 **Balance Details**\n\n"
+            "💵 Current: ৳0\n\n"
+            "📊 **Statistics**\n\n"
+            "📦 Total Orders: 0\n"
+            "💸 Total Spent: ৳0\n"
+            "🏦 Total Deposited: ৳0\n"
+            "🎁 Referral Earned: ৳0\n\n"
+            "🔗 **Your Referral Link**\n"
+            "═════════════════════\n\n"
+            f"https://t.me/OldXShopBot?start=ref_{user.id}\n\n"
+            "📊 Share and earn 10% commission on purchases!"
         )
-        await query.message.edit_text(query.message.text + "\n\n❌ *Status: REJECTED*")
+        keyboard = [
+            [InlineKeyboardButton("📦 My Orders", callback_data="my_orders")],
+            [InlineKeyboardButton("💳 Add Balance", callback_data="add_balance")],
+            [InlineKeyboardButton("📜 Transaction", callback_data="transaction")],
+            [InlineKeyboardButton("⬅️ Back to Menu", callback_data="back_to_main")]
+        ]
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif data == "support":
+        text = (
+            "💳 **SUPPORT CENTER**\n"
+            "═════════════════════\n\n"
+            "💬 কোনো সমস্যা হলে নিচের বাটনে ক্লিক করে আমাদের সাথে সরাসরি যোগাযোগ করুন।"
+        )
+        keyboard = [
+            [InlineKeyboardButton("💬 Support এ যোগাযোগ করুন", url=SUPPORT_LINK)],
+            [InlineKeyboardButton("📢 Join Group", url=GROUP_LINK)],
+            [InlineKeyboardButton("⬅️ Back to Shop", callback_data="back_to_shop")]
+        ]
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+
+    elif data == "back_to_main":
+        welcome_text = (
+            "═════════════════════\n"
+            "🎮 **OLD X SHOP** 🎮\n"
+            "═════════════════════\n\n"
+            f"Hey {user.first_name} 👋, glad to have you here.\n\n"
+            "**যা যা পাচ্ছেন এখানে:**\n"
+            " 🔑 Premium Game Keys\n"
+            " ⚡️ Instant 24/7 Delivery\n"
+            " 🔒 100% Secure Payment\n"
+            " 💸 Best Price Guarantee\n"
+            " 🎁 Referral Rewards\n"
+            " 🏆 Real Human Support\n\n"
+            "═════════════════════\n"
+            "👇 **নিচ থেকে শুরু করুন**"
+        )
+        await query.edit_message_text(welcome_text, parse_mode="Markdown", reply_markup=get_main_menu())
 
 def main():
-    app = Application.builder().token(TOKEN).build()
-
-    conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(process_buy, pattern='^buy_')],
-        states={
-            WAITING_TRX: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_trx)]
-        },
-        fallbacks=[CommandHandler('start', start)]
-    )
-
-    app.add_handler(CommandHandler('start', start))
-    app.add_handler(CallbackQueryHandler(shop_menu, pattern='^shop_now$'))
-    app.add_handler(CallbackQueryHandler(start, pattern='^main_menu$'))
-    app.add_handler(CallbackQueryHandler(product_detail, pattern='^prod_drip$'))
-    app.add_handler(CallbackQueryHandler(admin_action, pattern='^(app_|rej_)'))
-    app.add_handler(conv_handler)
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
     
-    print("Bot starting...")
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("shop", start))
+    app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
+    app.add_handler(CallbackQueryHandler(button_click))
+    
     app.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
