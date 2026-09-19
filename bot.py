@@ -20,7 +20,7 @@ def run_flask():
 # ---------------------------------------------------------
 # 2. TELEGRAM BOT CONFIGURATION
 # ---------------------------------------------------------
-TOKEN = "7993052115:AAGM58l-JJfaAU7nD8ho80_PKuU8haLGFIA"
+TOKEN = "7993052115:AAGpw4jBW0cMlpeW32Vkxhdmu7rlQy_9jP4"
 
 users = {}
 
@@ -75,7 +75,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💸 **Total Spent:** ৳{user_data['spent']}\n"
             f"💳 **Total Deposited:** ৳{user_data['deposited']}\n\n"
             f"🔗 **Your Referral Link:**\n"
-            f"https://t.me/MurubbixshoppBot?start=ref_{user_id}"
+            f"https://t.me/OldXShopBot?start=ref_{user_id}"
         )
         keyboard = [
             [InlineKeyboardButton("💳 Add Balance", callback_data="add_balance")],
@@ -146,12 +146,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
 def main():
-    # Flask থ্রেড রান
     t = threading.Thread(target=run_flask)
     t.daemon = True
     t.start()
 
-    # Telegram Bot রান
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
