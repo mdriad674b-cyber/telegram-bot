@@ -1,11 +1,11 @@
 import os
 import logging
-from thread import Thread
+from threading import Thread
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# Flask Web Server (Render-er Web Service-er jonno)
+# Flask Web Server (Render Web Service-এর জন্য)
 app = Flask('')
 
 @app.route('/')
